@@ -72,3 +72,24 @@ Fechas: `YYYY-MM-DD` y fecha-hora `YYYY-MM-DDTHH:mm`, igual que el frontend.
 ```bash
 ./mvnw test
 ```
+
+Incluye un test del perfil de producción (`postgres`) contra un PostgreSQL embebido real, sin Docker.
+
+## Despliegue en Render (Blueprint)
+
+`render.yaml` crea el servicio web `credibarrio-backend` (Docker, `Dockerfile`) y la base PostgreSQL `credibarrio-db`,
+y conecta ambos con el perfil `postgres`.
+
+1. En Render: **New → Blueprint**, elija este repositorio y la rama `main`, y confirme.
+2. Espere el primer despliegue (compila la imagen; puede tardar varios minutos). La salud se verifica en
+   `/actuator/health`; la documentación queda en `https://<servicio>.onrender.com/swagger-ui.html`.
+3. Si la URL asignada no es `https://credibarrio-backend.onrender.com`, actualícela en
+   `src/environments/environment.ts` del frontend.
+4. En **Environment** del servicio, reemplace `CORS_ALLOWED_ORIGINS` (por defecto `https://*.vercel.app`) por la URL
+   exacta del frontend en Vercel.
+
+Variables que configura el Blueprint: `SPRING_PROFILES_ACTIVE=postgres`, `DB_HOST/DB_PORT/DB_NAME/DB_USERNAME/DB_PASSWORD`
+(desde la base de datos), `JWT_SECRET` (generada por Render), `CORS_ALLOWED_ORIGINS` y `SEED_DEMO_DATA`.
+
+> En el plan gratuito el servicio se suspende tras un periodo sin tráfico (la primera petición tarda mientras
+> Spring Boot arranca) y la base PostgreSQL gratuita tiene fecha de vencimiento.

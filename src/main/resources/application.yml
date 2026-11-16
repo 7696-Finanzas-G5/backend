@@ -23,6 +23,18 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Detrás del proxy HTTPS de Render: respeta X-Forwarded-* (URLs correctas en Swagger)
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 springdoc:
   swagger-ui:
@@ -48,6 +60,26 @@ spring:
     url: ${DB_URL:jdbc:mysql://localhost:3306/credibarrio?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Lima}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
+  h2:
+    console:
+      enabled: false
+
+---
+# Producción en Render (render.yaml): PostgreSQL gestionado
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
   h2:
     console:
       enabled: false

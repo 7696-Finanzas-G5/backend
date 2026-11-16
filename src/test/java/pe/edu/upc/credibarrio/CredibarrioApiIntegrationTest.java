@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -19,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Flujo completo sobre los datos de demostración (juegos de datos 1 y 2 del Informe). */
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class CredibarrioApiIntegrationTest {
 

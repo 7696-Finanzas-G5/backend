@@ -39,6 +39,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
         <!-- JWT -->
         <dependency>
@@ -66,7 +70,7 @@
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- Bases de datos: H2 (desarrollo) y MySQL (perfil mysql) -->
+        <!-- Bases de datos: H2 (desarrollo), MySQL (perfil mysql) y PostgreSQL (perfil postgres / Render) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -75,6 +79,11 @@
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
 
@@ -86,6 +95,13 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- PostgreSQL real embebido para probar el perfil de producción (Render) sin Docker -->
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
