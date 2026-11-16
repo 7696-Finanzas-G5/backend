@@ -65,15 +65,19 @@ spring:
       enabled: false
 
 ---
-# Producción en Render (render.yaml): PostgreSQL gestionado
+# Producción (Render + Aiven PostgreSQL). Opciones para DB_URL:
+#  - Service URI de Aiven: postgres://avnadmin:<clave>@<host>:<puerto>/defaultdb?sslmode=require
+#    (usuario y clave se toman de la URI; ver DatabaseUrlEnvironmentPostProcessor)
+#  - URL JDBC: jdbc:postgresql://<host>:<puerto>/defaultdb?sslmode=require  + DB_USERNAME y DB_PASSWORD
+#  - Sin DB_URL: DB_HOST, DB_PORT, DB_NAME, DB_USERNAME y DB_PASSWORD
 spring:
   config:
     activate:
       on-profile: postgres
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:credibarrio}}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:5}
   jpa:

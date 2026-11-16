@@ -11,8 +11,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
@@ -40,19 +38,13 @@ class PostgresProfileIntegrationTest {
         } catch (IOException e) {
             throw new IllegalStateException("No se pudo iniciar PostgreSQL embebido", e);
         }
-    }
-
-    @DynamicPropertySource
-    static void datasource(DynamicPropertyRegistry r) {
-        r.add("DB_HOST", () -> "localhost");
-        r.add("DB_PORT", PG::getPort);
-        r.add("DB_NAME", () -> "postgres");
-        r.add("DB_USERNAME", () -> "postgres");
-        r.add("DB_PASSWORD", () -> "postgres");
+        // Igual que en Render + Aiven: una "Service URI" en DB_URL (usuario y clave incluidos)
+        System.setProperty("DB_URL", "postgres://postgres:postgres@localhost:" + PG.getPort() + "/postgres?sslmode=prefer");
     }
 
     @AfterAll
     static void stop() throws IOException {
+        System.clearProperty("DB_URL");
         PG.close();
     }
 

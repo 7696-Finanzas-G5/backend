@@ -1,5 +1,7 @@
-# Blueprint de Render: backend CrediBarrio (Docker) + PostgreSQL gestionado.
+# Blueprint de Render: backend CrediBarrio (Docker) con base de datos en Aiven PostgreSQL.
 # Render > New > Blueprint > seleccione este repositorio (rama main).
+# Al crear el Blueprint, Render pedirá DB_URL: pegue la "Service URI" de Aiven
+#   postgres://avnadmin:<clave>@<host>.aivencloud.com:<puerto>/defaultdb?sslmode=require
 services:
   - type: web
     name: credibarrio-backend
@@ -13,26 +15,12 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: postgres
-      - key: DB_HOST
-        fromDatabase:
-          name: credibarrio-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: credibarrio-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: credibarrio-db
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: credibarrio-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: credibarrio-db
-          property: password
+      # Service URI de Aiven (incluye usuario, clave y sslmode=require). No se guarda en el repositorio.
+      - key: DB_URL
+        sync: false
+      # Conexiones simultáneas a la base (el plan gratuito de Aiven admite pocas)
+      - key: DB_POOL_SIZE
+        value: "5"
       # Clave HMAC del JWT generada por Render (no se guarda en el repositorio)
       - key: JWT_SECRET
         generateValue: true
@@ -45,10 +33,3 @@ services:
       # Carga los datos de demostración solo si la base está vacía
       - key: SEED_DEMO_DATA
         value: "true"
-
-databases:
-  - name: credibarrio-db
-    plan: free
-    region: oregon
-    databaseName: credibarrio
-    user: credibarrio
