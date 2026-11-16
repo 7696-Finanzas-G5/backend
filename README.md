@@ -72,3 +72,32 @@ Fechas: `YYYY-MM-DD` y fecha-hora `YYYY-MM-DDTHH:mm`, igual que el frontend.
 ```bash
 ./mvnw test
 ```
+
+Incluye un test del perfil de producción (`postgres`) contra un PostgreSQL embebido real, sin Docker.
+
+## Despliegue: Render (Blueprint) + Aiven PostgreSQL
+
+`render.yaml` crea el servicio web `credibarrio-backend` (Docker, `Dockerfile`) con el perfil `postgres`.
+La base de datos es un servicio **PostgreSQL de Aiven** (no se crea en Render).
+
+1. En [Aiven](https://console.aiven.io): cree un servicio **PostgreSQL** (plan gratuito) en una región cercana a
+   la del servicio de Render (`oregon`, oeste de EE. UU.). En **Overview** copie la **Service URI**:
+   `postgres://avnadmin:<clave>@<host>.aivencloud.com:<puerto>/defaultdb?sslmode=require`.
+2. En Render: **New → Blueprint**, elija este repositorio (rama `main`). Cuando pida `DB_URL`, pegue la Service URI.
+3. Espere el primer despliegue (compila la imagen; puede tardar varios minutos). Hibernate crea las tablas y se
+   cargan los datos de demostración. Salud: `/actuator/health`; documentación: `https://<servicio>.onrender.com/swagger-ui.html`.
+4. Si la URL asignada no es `https://credibarrio-backend.onrender.com`, actualícela en
+   `src/environments/environment.ts` del frontend.
+5. En **Environment** del servicio, reemplace `CORS_ALLOWED_ORIGINS` (por defecto `https://*.vercel.app`) por la URL
+   exacta del frontend en Vercel.
+
+`DB_URL` acepta la Service URI (`postgres://…`, usuario y clave incluidos) o una URL JDBC
+(`jdbc:postgresql://<host>:<puerto>/defaultdb?sslmode=require`) junto con `DB_USERNAME` y `DB_PASSWORD`.
+Aiven exige SSL: `sslmode=require` cifra la conexión (no verifica el certificado del servidor).
+
+Variables del Blueprint: `SPRING_PROFILES_ACTIVE=postgres`, `DB_URL` (se ingresa al crear), `DB_POOL_SIZE=5`,
+`JWT_SECRET` (generada por Render), `CORS_ALLOWED_ORIGINS` y `SEED_DEMO_DATA`.
+
+> En el plan gratuito de Render el servicio se suspende tras un periodo sin tráfico (la primera petición tarda
+> mientras Spring Boot arranca). Revise las condiciones vigentes del plan gratuito de Aiven (límite de conexiones
+> y apagado por inactividad).

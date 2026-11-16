@@ -53,8 +53,11 @@ public class ProductoServicio {
     @Column(nullable = false, length = 50)
     private String unidadMedida;
 
-    /** URL o data URL (base64) de la imagen; el frontend admite hasta 400 KB. */
-    @Lob
+    /**
+     * URL o data URL (base64) de la imagen; el frontend admite hasta 400 KB (~550 000 caracteres en base64).
+     * Se usa un texto largo en lugar de {@code @Lob} para que funcione igual en H2, MySQL y PostgreSQL.
+     */
+    @Column(length = 1_000_000)
     private String imagenUrl;
 
     @Column(nullable = false, precision = 15, scale = 2)
