@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:credibarrio-test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+credibarrio:
+  jwt:
+    secret: test-secret-credibarrio-0123456789-abcdefghij
+    expiration-hours: 1
+  cors:
+    allowed-origins: http://localhost:4200
+  seed:
+    enabled: true
