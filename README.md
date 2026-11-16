@@ -1,6 +1,14 @@
 # CrediBarrio · Backend
 
-## Ejecutar
+## Producción
+
+- Swagger UI: https://credibarrio-backend.onrender.com/swagger-ui/index.html
+- API: `https://credibarrio-backend.onrender.com/api/v1`
+- Salud: https://credibarrio-backend.onrender.com/actuator/health
+
+> Plan gratuito de Render: si el servicio estaba inactivo, la primera petición puede tardar mientras arranca.
+
+## Ejecutar en local
 
 ```bash
 ./mvnw spring-boot:run          # Windows: mvnw.cmd spring-boot:run
@@ -85,7 +93,7 @@ La base de datos es un servicio **PostgreSQL de Aiven** (no se crea en Render).
    `postgres://avnadmin:<clave>@<host>.aivencloud.com:<puerto>/defaultdb?sslmode=require`.
 2. En Render: **New → Blueprint**, elija este repositorio (rama `main`). Cuando pida `DB_URL`, pegue la Service URI.
 3. Espere el primer despliegue (compila la imagen; puede tardar varios minutos). Hibernate crea las tablas y se
-   cargan los datos de demostración. Salud: `/actuator/health`; documentación: `https://<servicio>.onrender.com/swagger-ui.html`.
+   cargan los datos de demostración. Salud: `/actuator/health`; documentación: `https://credibarrio-backend.onrender.com/swagger-ui/index.html`.
 4. Si la URL asignada no es `https://credibarrio-backend.onrender.com`, actualícela en
    `src/environments/environment.ts` del frontend.
 5. En **Environment** del servicio, reemplace `CORS_ALLOWED_ORIGINS` (por defecto `https://*.vercel.app`) por la URL
