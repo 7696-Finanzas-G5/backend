@@ -1,0 +1,5 @@
+# El wrapper de Maven y el Dockerfile se ejecutan en Linux (Render): siempre con fin de línea LF
+mvnw text eol=lf
+Dockerfile text eol=lf
+*.sh text eol=lf
+mvnw.cmd text eol=crlf
