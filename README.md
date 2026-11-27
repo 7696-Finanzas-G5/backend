@@ -2,11 +2,18 @@
 
 ## Producción
 
-Desplegado en [Railway](https://railway.com):
+Hay dos despliegues de producción independientes, cada uno con su propia base de datos PostgreSQL.
+**El servicio en uso es el de Railway**; el de Render se mantiene como respaldo (backup).
 
-- Swagger UI: https://credibarrio-backend-production.up.railway.app/swagger-ui/index.html
-- API: `https://credibarrio-backend-production.up.railway.app/api/v1`
-- Salud: https://credibarrio-backend-production.up.railway.app/actuator/health
+| | Railway (principal) | Render (backup) |
+|---|---|---|
+| Base de datos | PostgreSQL de Railway (mismo proyecto) | PostgreSQL de Aiven |
+| Swagger UI | https://credibarrio-backend-production.up.railway.app/swagger-ui/index.html | https://credibarrio-backend.onrender.com/swagger-ui/index.html |
+| API | `https://credibarrio-backend-production.up.railway.app/api/v1` | `https://credibarrio-backend.onrender.com/api/v1` |
+| Salud | https://credibarrio-backend-production.up.railway.app/actuator/health | https://credibarrio-backend.onrender.com/actuator/health |
+
+> Los datos no se comparten entre ambos despliegues. En el plan gratuito de Render, si el servicio estaba inactivo,
+> la primera petición puede tardar mientras arranca.
 
 ## Ejecutar en local
 
@@ -89,36 +96,47 @@ Fechas: `YYYY-MM-DD` y fecha-hora `YYYY-MM-DDTHH:mm`, igual que el frontend.
 
 Incluye un test del perfil de producción (`postgres`) contra un PostgreSQL embebido real, sin Docker.
 
-## Despliegue: Railway + Aiven PostgreSQL
+## Despliegue
 
-Railway construye la imagen con el `Dockerfile` del repositorio y ejecuta el perfil `postgres`.
-La base de datos es un servicio **PostgreSQL de Aiven**.
+Ambos despliegues construyen la imagen con el `Dockerfile` y usan el perfil `postgres`. `DB_URL` acepta una URI
+(`postgres://…` o `postgresql://…`, usuario y clave incluidos) o una URL JDBC (`jdbc:postgresql://<host>:<puerto>/<base>`)
+junto con `DB_USERNAME` y `DB_PASSWORD`.
 
-1. En [Aiven](https://console.aiven.io): cree un servicio **PostgreSQL** (plan gratuito). En **Overview** copie la
-   **Service URI**: `postgres://avnadmin:<clave>@<host>.aivencloud.com:<puerto>/defaultdb?sslmode=require`.
-2. En Railway: **New Project → Deploy from GitHub repo**, elija este repositorio (rama `main`). Railway detecta el
+| Variable | Valor |
+|---|---|
+| `SPRING_PROFILES_ACTIVE` | `postgres` |
+| `DB_URL` | URI de la base de datos (ver cada despliegue) |
+| `DB_POOL_SIZE` | `5` |
+| `JWT_SECRET` | cadena aleatoria de ≥ 32 caracteres |
+| `JWT_EXPIRATION_HOURS` | `8` |
+| `CORS_ALLOWED_ORIGINS` | URL exacta del frontend en Vercel (varias, separadas por coma) |
+| `SEED_DEMO_DATA` | `true` |
+
+### Railway + PostgreSQL de Railway (principal)
+
+1. En Railway: **New Project → Deploy from GitHub repo**, elija este repositorio (rama `main`). Railway detecta el
    `Dockerfile` y asigna la variable `PORT` automáticamente.
-3. En **Variables** del servicio defina:
-
-   | Variable | Valor |
-   |---|---|
-   | `SPRING_PROFILES_ACTIVE` | `postgres` |
-   | `DB_URL` | Service URI de Aiven |
-   | `DB_POOL_SIZE` | `5` |
-   | `JWT_SECRET` | cadena aleatoria de ≥ 32 caracteres |
-   | `JWT_EXPIRATION_HOURS` | `8` |
-   | `CORS_ALLOWED_ORIGINS` | URL exacta del frontend en Vercel (varias, separadas por coma) |
-   | `SEED_DEMO_DATA` | `true` |
-
+2. En el mismo proyecto: **New → Database → PostgreSQL**.
+3. En **Variables** del servicio del backend defina las variables de la tabla, con
+   `DB_URL=${{Postgres.DATABASE_URL}}` (referencia a la base del proyecto) y `JWT_SECRET` ingresado a mano.
 4. En **Settings → Networking** genere el dominio público
    (`https://credibarrio-backend-production.up.railway.app`) y, en **Settings → Deploy**, use `/actuator/health`
    como healthcheck.
-5. Espere el primer despliegue (puede tardar varios minutos). Hibernate crea las tablas y se cargan los datos de
-   demostración. Si el dominio asignado es otro, actualícelo en `src/environments/environment.ts` del frontend.
+5. Espere el primer despliegue. Hibernate crea las tablas y se cargan los datos de demostración.
 
-`DB_URL` acepta la Service URI (`postgres://…`, usuario y clave incluidos) o una URL JDBC
-(`jdbc:postgresql://<host>:<puerto>/defaultdb?sslmode=require`) junto con `DB_USERNAME` y `DB_PASSWORD`.
+### Render (Blueprint) + PostgreSQL de Aiven (backup)
+
+`render.yaml` crea el servicio web `credibarrio-backend` con las variables de la tabla (`JWT_SECRET` la genera Render).
+
+1. En [Aiven](https://console.aiven.io): cree un servicio **PostgreSQL** (plan gratuito) en una región cercana a
+   `oregon` (oeste de EE. UU.). En **Overview** copie la **Service URI**:
+   `postgres://avnadmin:<clave>@<host>.aivencloud.com:<puerto>/defaultdb?sslmode=require`.
+2. En Render: **New → Blueprint**, elija este repositorio (rama `main`). Cuando pida `DB_URL`, pegue la Service URI.
+3. Espere el primer despliegue (puede tardar varios minutos). Hibernate crea las tablas y se cargan los datos de
+   demostración.
+
 Aiven exige SSL: `sslmode=require` cifra la conexión (no verifica el certificado del servidor).
 
-> Revise las condiciones vigentes del plan de Railway (crédito mensual) y del plan gratuito de Aiven (límite de
-> conexiones y apagado por inactividad).
+> Si alguna URL asignada es distinta, actualícela en `src/environments/environment.ts` del frontend. Revise las
+> condiciones vigentes de cada plan: crédito mensual de Railway, suspensión por inactividad de Render y límite de
+> conexiones y apagado por inactividad de Aiven.
