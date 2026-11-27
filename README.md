@@ -53,12 +53,18 @@ Las fórmulas están en `shared/domain/finance/FinancialMath.java`, réplica exa
 ## Autenticación
 
 `POST /api/v1/auth/login` con `{"rol","username","clave"}` devuelve `{token, tokenType, usuario}`. El resto de endpoints
-requiere `Authorization: Bearer <token>`. Errores: `{status, error, message, timestamp}` (422 = regla de negocio).
+requiere `Authorization: Bearer <token>`.
+
+**Registro público de un negocio:** `POST /api/v1/auth/registro` con
+`{"nombreComercial","ruc","direccion","giroNegocio","username","clave"}` crea la tienda (activa) y su usuario
+Administrador del Negocio, y devuelve lo mismo que el login (`201`, sesión ya iniciada). Los giros válidos se obtienen
+sin token en `GET /api/v1/tiendas/giros`. Errores: `{status, error, message, timestamp}` (422 = regla de negocio).
 
 ## Endpoints principales
 
 | Método | Ruta | Rol |
 |---|---|---|
+| POST | `/auth/registro` · GET `/tiendas/giros` | público |
 | POST | `/auth/login` · GET `/auth/me` · POST `/auth/cambiar-clave` | público / autenticado |
 | GET, PATCH | `/usuarios`, `/usuarios/{id}/estado`, POST `/usuarios/{id}/restablecer-clave` | ADMIN_SISTEMA |
 | GET, POST, PUT, PATCH | `/tiendas`, `/tiendas/{id}`, `/tiendas/{id}/estado` | ADMIN_SISTEMA |

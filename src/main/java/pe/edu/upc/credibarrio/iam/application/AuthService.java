@@ -12,6 +12,9 @@ import pe.edu.upc.credibarrio.iam.infrastructure.security.UserPrincipal;
 import pe.edu.upc.credibarrio.shared.domain.DomainException;
 import pe.edu.upc.credibarrio.shared.domain.Enums.Rol;
 import pe.edu.upc.credibarrio.shared.domain.NotFoundException;
+import pe.edu.upc.credibarrio.stores.application.TiendaService;
+import pe.edu.upc.credibarrio.stores.application.TiendaService.GuardarTiendaCommand;
+import pe.edu.upc.credibarrio.stores.domain.model.Tienda;
 
 /** Caso de uso: autenticación y sesión del usuario actual. */
 @Service
@@ -21,19 +24,37 @@ public class AuthService {
     public record LoginResult(String token, Usuario usuario) {
     }
 
+    /** Auto-registro público de un negocio: crea su tienda y su usuario Administrador del Negocio. */
+    public record RegistrarNegocioCommand(String nombreComercial, String ruc, String direccion, String giroNegocio,
+                                          String username, String clave) {
+    }
+
     private final UsuarioRepository usuarios;
     private final PasswordEncoder encoder;
     private final JwtService jwt;
     private final AuditService audit;
     private final CurrentUser currentUser;
+    private final TiendaService tiendas;
 
     public AuthService(UsuarioRepository usuarios, PasswordEncoder encoder, JwtService jwt, AuditService audit,
-                       CurrentUser currentUser) {
+                       CurrentUser currentUser, TiendaService tiendas) {
         this.usuarios = usuarios;
         this.encoder = encoder;
         this.jwt = jwt;
         this.audit = audit;
         this.currentUser = currentUser;
+        this.tiendas = tiendas;
+    }
+
+    /** Registra la tienda y su administrador (activos) y devuelve la sesión ya iniciada. */
+    public LoginResult registrarNegocio(RegistrarNegocioCommand cmd) {
+        Tienda tienda = tiendas.registrar(new GuardarTiendaCommand(cmd.nombreComercial(), cmd.ruc(), cmd.direccion(),
+                cmd.giroNegocio(), true, cmd.username(), cmd.clave()));
+        Usuario user = usuarios.findFirstByIdTiendaAndRol(tienda.getId(), Rol.ADMIN_NEGOCIO)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado."));
+        audit.registrarComo(user.getId(), "REGISTRO", "usuario", user.getId(),
+                user.getUsername() + " registró la tienda " + tienda.getNombreComercial());
+        return sesion(user);
     }
 
     public LoginResult login(Rol rol, String username, String clave) {
@@ -46,8 +67,12 @@ public class AuthService {
             throw new DomainException("Usuario, contraseña o rol incorrectos.");
         }
         if (!user.activo()) throw new DomainException("El usuario se encuentra dado de baja.");
-        user.registrarAcceso();
         audit.registrarComo(user.getId(), "LOGIN", "usuario", user.getId(), null);
+        return sesion(user);
+    }
+
+    private LoginResult sesion(Usuario user) {
+        user.registrarAcceso();
         String token = jwt.generate(new UserPrincipal(user.getId(), user.getUsername(), user.getRol(),
                 user.getIdTienda(), user.getIdCliente()));
         return new LoginResult(token, user);
