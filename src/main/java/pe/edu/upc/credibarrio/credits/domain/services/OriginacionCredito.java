@@ -50,10 +50,11 @@ public final class OriginacionCredito {
         if (!producto.activo()) errores.add("El producto está dado de baja.");
 
         LocalDate fechaCompra = sol.fechaHoraCompra().toLocalDate();
-        LocalDate fechaPago = FinancialMath.fechaPagoCiclo(fechaCompra, cond.diaCorte(), cond.diaPago());
+        // Compras anteriores a la fecha y hora de corte entran al ciclo de ese mes; desde el corte, al siguiente
+        boolean anteriorAlCorte = FinancialMath.antesDelCorte(sol.fechaHoraCompra(), cond.diaCorte(), cond.horaCorte());
+        LocalDate fechaPago = FinancialMath.fechaPagoCiclo(sol.fechaHoraCompra(), cond.diaCorte(), cond.horaCorte(),
+                cond.diaPago());
         LocalDate fechaCorte = FinancialMath.fechaCorteDeCiclo(fechaPago, cond.diaCorte());
-        // Compras hasta las 23:59 del día de corte de su mes entran al ciclo de ese mes
-        boolean anteriorAlCorte = fechaCompra.getDayOfMonth() <= cond.diaCorte();
 
         FinMes finMes = null;
         CronogramaFrances cronograma = null;

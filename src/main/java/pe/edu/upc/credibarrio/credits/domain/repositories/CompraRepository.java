@@ -20,4 +20,6 @@ public interface CompraRepository extends JpaRepository<Compra, Long> {
     List<Compra> findByIdClienteInOrderByFechaHoraCompraDesc(Collection<Long> idsCliente, Pageable pageable);
 
     List<Compra> findByIdClienteAndEstado(Long idCliente, EstadoCompra estado);
+
+    List<Compra> findByModalidadAndEstadoOrderByFechaHoraCompra(ModalidadCompra modalidad, EstadoCompra estado);
 }
