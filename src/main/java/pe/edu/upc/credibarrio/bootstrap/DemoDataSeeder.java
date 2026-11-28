@@ -32,10 +32,13 @@ import pe.edu.upc.credibarrio.stores.domain.model.Tienda.EstadoTienda;
 import pe.edu.upc.credibarrio.stores.domain.repositories.TiendaRepository;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Datos de demostración (mismos que {@code bootstrap/demo-seed.ts} del frontend). Reproducen los mockups (6.2)
@@ -77,7 +80,10 @@ public class DemoDataSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (usuarios.count() > 0) return;
+        if (usuarios.count() > 0) {
+            completarImagenesDemo();
+            return;
+        }
         log.info("Cargando datos de demostración de CrediBarrio…");
 
         String hAdmin = encoder.encode("Admin2026");
@@ -126,8 +132,44 @@ public class DemoDataSeeder implements ApplicationRunner {
         var cronograma = FinancialMath.cronogramaFrances(600, condJuan.tedCompensatoria(), fechaCuotas.toLocalDate(), pago1, 3);
         cuotas.saveAll(cronograma.filas().stream().map(f -> Cuota.desdeFila(enCuotas.getId(), f)).toList());
 
+        completarImagenesDemo();
         bitacora.save(new RegistroAuditoria(null, "INICIALIZAR", "sistema", null, "Carga de datos de demostración"));
         log.info("Datos de demostración cargados. Usuarios: admin/Admin2026, bodega.sanpedro/Negocio2026, juan.perez/Cliente2026");
+    }
+
+    /** Ilustración de cada producto de demostración ("código|descripción" → emoji, fondo y etiqueta). */
+    private static final Map<String, String[]> IMAGENES_DEMO = Map.of(
+            "P-001|Canasta Familiar Mensual", new String[]{"🧺", "#FDE7C7", "Canasta familiar"},
+            "P-002|Aceite Vegetal x Caja", new String[]{"🫒", "#E4F2D7", "Aceite vegetal"},
+            "S-001|Servicio de Delivery Barrial", new String[]{"🛵", "#DCEBFA", "Delivery barrial"},
+            "P-003|Combo Aseo Hogar", new String[]{"🧴", "#EDE3F7", "Aseo hogar"},
+            "P-004|Compra de Abarrotes", new String[]{"🛒", "#FBE0DC", "Abarrotes"},
+            "P-005|Compra de Lácteos", new String[]{"🥛", "#E3F1F6", "Lácteos"});
+
+    /**
+     * Completa la imagen de los productos de demostración que no la tengan (el enunciado exige imagen). Se ejecuta
+     * también sobre una base ya inicializada, sin tocar imágenes que el negocio haya cargado.
+     */
+    private void completarImagenesDemo() {
+        int n = 0;
+        for (ProductoServicio p : productos.findAll()) {
+            String[] img = IMAGENES_DEMO.get(p.getCodigo() + "|" + p.getDescripcion());
+            if (img != null && (p.getImagenUrl() == null || p.getImagenUrl().isBlank())) {
+                p.asignarImagenSiFalta(imagenSvg(img[0], img[1], img[2]));
+                productos.save(p);
+                n++;
+            }
+        }
+        if (n > 0) log.info("Imágenes de demostración asignadas a {} producto(s).", n);
+    }
+
+    private static String imagenSvg(String emoji, String fondo, String etiqueta) {
+        String svg = "<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'>"
+                + "<rect width='240' height='240' rx='28' fill='" + fondo + "'/>"
+                + "<text x='120' y='138' font-size='110' text-anchor='middle'>" + emoji + "</text>"
+                + "<text x='120' y='206' font-size='20' font-family='Arial, sans-serif' fill='#334' text-anchor='middle'>"
+                + etiqueta + "</text></svg>";
+        return "data:image/svg+xml;base64," + Base64.getEncoder().encodeToString(svg.getBytes(StandardCharsets.UTF_8));
     }
 
     private static ProductoServicio producto(Long idTienda, String codigo, TipoItem tipo, String proveedor, String marca,

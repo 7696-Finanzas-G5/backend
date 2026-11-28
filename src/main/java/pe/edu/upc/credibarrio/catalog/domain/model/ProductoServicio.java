@@ -111,6 +111,13 @@ public class ProductoServicio {
         return modalidadPermitida == ModalidadPermitida.AMBAS || modalidadPermitida.name().equals(m.name());
     }
 
+    /** Asigna una imagen solo si el producto no tiene una (no reemplaza la que cargó el negocio). */
+    public void asignarImagenSiFalta(String imagenUrl) {
+        if ((this.imagenUrl == null || this.imagenUrl.isBlank()) && imagenUrl != null && !imagenUrl.isBlank()) {
+            this.imagenUrl = imagenUrl;
+        }
+    }
+
     public void cambiarEstado(EstadoActivo estado) {
         this.estado = estado;
     }

@@ -8,6 +8,8 @@ import pe.edu.upc.credibarrio.shared.domain.Enums.TipoTasa;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -91,11 +93,31 @@ public final class FinancialMath {
                 + (Math.min(f2.getDayOfMonth(), 30) - Math.min(f1.getDayOfMonth(), 30));
     }
 
-    /** 2. Fecha de pago según la fecha de corte (compras hasta las 23:59 del día de corte entran al ciclo actual). */
-    public static LocalDate fechaPagoCiclo(LocalDate fechaCompra, int diaCorte, int diaPago) {
+    /** Hora de corte por defecto cuando no se pactó una: fin del día de corte. */
+    public static final LocalTime HORA_CORTE_DEFECTO = LocalTime.of(23, 59, 59);
+
+    /**
+     * Indica si una compra entra al ciclo del mes en que se hizo: es anterior al día de corte o es del mismo día de
+     * corte antes de la hora de corte pactada. La hora exacta inicia el ciclo siguiente.
+     */
+    public static boolean antesDelCorte(LocalDateTime fechaHoraCompra, int diaCorte, LocalTime horaCorte) {
+        int dia = fechaHoraCompra.getDayOfMonth();
+        if (dia != diaCorte) return dia < diaCorte;
+        LocalTime hora = horaCorte != null ? horaCorte : HORA_CORTE_DEFECTO;
+        return fechaHoraCompra.toLocalTime().isBefore(hora);
+    }
+
+    /** 2. Fecha de pago según la fecha y hora de corte: compras posteriores al corte pasan al mes siguiente. */
+    public static LocalDate fechaPagoCiclo(LocalDateTime fechaHoraCompra, int diaCorte, LocalTime horaCorte, int diaPago) {
         DomainException.ensure(diaPago > diaCorte, "El día de pago debe ser posterior al día de corte.");
-        int m = fechaCompra.getDayOfMonth() <= diaCorte ? fechaCompra.getMonthValue() : fechaCompra.getMonthValue() + 1;
-        return makeDate(fechaCompra.getYear(), m, diaPago);
+        int mes = fechaHoraCompra.getMonthValue();
+        int m = antesDelCorte(fechaHoraCompra, diaCorte, horaCorte) ? mes : mes + 1;
+        return makeDate(fechaHoraCompra.getYear(), m, diaPago);
+    }
+
+    /** 2. Variante por fecha: equivale a considerar la hora de corte por defecto (23:59:59). */
+    public static LocalDate fechaPagoCiclo(LocalDate fechaCompra, int diaCorte, int diaPago) {
+        return fechaPagoCiclo(fechaCompra.atStartOfDay(), diaCorte, HORA_CORTE_DEFECTO, diaPago);
     }
 
     /** Fecha de corte del ciclo cuyo pago vence en {@code fechaPago}. */

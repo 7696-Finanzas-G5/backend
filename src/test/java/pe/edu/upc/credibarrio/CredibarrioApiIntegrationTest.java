@@ -86,6 +86,10 @@ class CredibarrioApiIntegrationTest {
         assertThat(ciclos.get(0).asText()).isEqualTo("2026-09-26");
         JsonNode ciclo = json(get("/api/v1/clientes/" + juan + "/estado-cuenta/ciclos/2026-09-26?fechaEfectiva=2026-10-01"), negocio, 200);
         assertThat(ciclo.at("/liquidacion/totalExigible").asDouble()).isEqualTo(181.93);
+        // El proceso automático de corte ya generó el listado del 20/09 (y venció el 26/09 sin pagarse)
+        assertThat(ciclo.at("/listado/fechaCorte").asText()).isEqualTo("2026-09-20");
+        assertThat(ciclo.at("/listado/estado").asText()).isEqualTo("VENCIDA");
+        assertThat(ciclo.at("/listado/detalle").size()).isEqualTo(2);
         assertThat(ciclo.at("/mora/totalExigible").asDouble()).isEqualTo(182.22);
 
         // El vecino puede consultar, pero no registrar pagos
@@ -99,6 +103,10 @@ class CredibarrioApiIntegrationTest {
         assertThat(pago.at("/imputacion/compensatorio").asDouble()).isEqualTo(1.93);
         assertThat(pago.at("/imputacion/capital").asDouble()).isEqualTo(180.0);
         assertThat(json(get("/api/v1/clientes/" + juan + "/estado-cuenta/ciclos"), negocio, 200)).isEmpty();
+        // El pago cancela el mismo listado generado al corte (no crea otro)
+        JsonNode liqs = json(get("/api/v1/clientes/" + juan + "/liquidaciones"), negocio, 200);
+        assertThat(liqs.size()).isEqualTo(1);
+        assertThat(liqs.get(0).get("estado").asText()).isEqualTo("PAGADA");
 
         // --- juego de datos 1: cuotas en orden
         JsonNode cuotas = json(get("/api/v1/clientes/" + juan + "/estado-cuenta/cuotas-pendientes?fechaEfectiva=2026-10-26"), negocio, 200);
