@@ -147,4 +147,36 @@ class FinancialMathTest {
     void aceptaUnaCompraValida() {
         assertThat(validarCompra(ModalidadPermitida.AMBAS, ModalidadCompra.FIN_MES, null, 3, 50, 70)).isEmpty();
     }
+
+    @Test
+    void respetaLaHoraDeCortePactada() {
+        java.time.LocalTime corte18 = java.time.LocalTime.of(18, 0);
+        // Mismo día de corte: antes de la hora entra al ciclo; desde la hora pasa al mes siguiente
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.of(2026, 9, 20, 17, 59), 20, corte18, 26)).isEqualTo(d("2026-09-26"));
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.of(2026, 9, 20, 18, 0), 20, corte18, 26)).isEqualTo(d("2026-10-26"));
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.of(2026, 9, 20, 18, 1), 20, corte18, 26)).isEqualTo(d("2026-10-26"));
+        // Sin hora pactada se toma 23:59:59
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.of(2026, 9, 20, 23, 59), 20, null, 26)).isEqualTo(d("2026-09-26"));
+    }
+
+    @Test
+    void respetaElInstanteExactoDeCorteConFraccionesDeSegundo() {
+        var corte = java.time.LocalTime.parse("18:00:00.500");
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.parse("2026-09-20T18:00:00.499999999"), 20, corte, 26))
+                .isEqualTo(d("2026-09-26"));
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.parse("2026-09-20T18:00:00.500"), 20, corte, 26))
+                .isEqualTo(d("2026-10-26"));
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.parse("2026-09-20T18:00:00.500000001"), 20, corte, 26))
+                .isEqualTo(d("2026-10-26"));
+    }
+
+    @Test
+    void aplicaElCorteExactoPorDefectoYEnElCambioDeAno() {
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.parse("2026-09-20T23:59:58.999999999"), 20, null, 26))
+                .isEqualTo(d("2026-09-26"));
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.parse("2026-09-20T23:59:59"), 20, null, 26))
+                .isEqualTo(d("2026-10-26"));
+        assertThat(fechaPagoCiclo(java.time.LocalDateTime.parse("2026-12-20T00:00"), 20, java.time.LocalTime.MIDNIGHT, 26))
+                .isEqualTo(d("2027-01-26"));
+    }
 }

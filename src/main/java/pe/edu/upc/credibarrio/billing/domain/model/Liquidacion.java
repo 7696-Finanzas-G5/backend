@@ -24,6 +24,7 @@ public class Liquidacion {
     private Long idCliente;
 
     @Column(nullable = false)
+    /** Condición de referencia para el último corte; cada detalle conserva su pacto mediante idCompra. */
     private Long idCondicion;
 
     @Column(nullable = false)
@@ -68,6 +69,20 @@ public class Liquidacion {
         this.estado = estado;
         this.fechaGeneracion = LocalDateTime.now();
         this.detalle.addAll(detalle);
+    }
+
+    /** El listado sigue pendiente de cobro (generado al corte, vigente o ya vencido). */
+    public boolean porCobrar() {
+        return estado == EstadoLiquidacion.PENDIENTE || estado == EstadoLiquidacion.VENCIDA;
+    }
+
+    /** Pasada la fecha de pago pactada sin cancelar, el listado queda vencido (genera mora). */
+    public void marcarVencida() {
+        if (estado == EstadoLiquidacion.PENDIENTE) this.estado = EstadoLiquidacion.VENCIDA;
+    }
+
+    public void marcarPagada() {
+        this.estado = EstadoLiquidacion.PAGADA;
     }
 
     public Long getId() { return id; }

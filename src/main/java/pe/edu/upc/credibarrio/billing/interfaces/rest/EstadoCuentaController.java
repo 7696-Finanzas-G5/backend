@@ -14,6 +14,7 @@ import pe.edu.upc.credibarrio.billing.application.EstadoCuentaService;
 import pe.edu.upc.credibarrio.billing.application.EstadoCuentaService.CuotaConMora;
 import pe.edu.upc.credibarrio.billing.application.EstadoCuentaService.EstadoCiclo;
 import pe.edu.upc.credibarrio.billing.application.EstadoCuentaService.ResultadoPago;
+import pe.edu.upc.credibarrio.billing.application.EstadoCuentaService.ResultadoCorte;
 import pe.edu.upc.credibarrio.billing.domain.model.Liquidacion;
 import pe.edu.upc.credibarrio.billing.domain.model.Pago;
 
@@ -60,6 +61,21 @@ public class EstadoCuentaController {
                                     @PathVariable @DateTimeFormat(iso = DATE) LocalDate fechaPago,
                                     @Valid @RequestBody PagoRequest req) {
         return estadoCuenta.pagarCiclo(idCliente, fechaPago, req.fechaEfectiva(), req.monto());
+    }
+
+    @PostMapping("/clientes/{idCliente}/estado-cuenta/ciclos/{fechaPago}/listado")
+    @PreAuthorize("hasRole('ADMIN_NEGOCIO')")
+    @Operation(summary = "Genera el listado de pago del ciclo (también lo hace el proceso automático de corte)")
+    public Liquidacion generarListado(@PathVariable Long idCliente,
+                                      @PathVariable @DateTimeFormat(iso = DATE) LocalDate fechaPago) {
+        return estadoCuenta.generarListado(idCliente, fechaPago);
+    }
+
+    @PostMapping("/cortes/ejecutar")
+    @PreAuthorize("hasRole('ADMIN_SISTEMA')")
+    @Operation(summary = "Ejecuta ahora el proceso de corte: genera listados pendientes y marca los vencidos")
+    public ResultadoCorte ejecutarCorte() {
+        return estadoCuenta.ejecutarCorte();
     }
 
     @GetMapping("/clientes/{idCliente}/estado-cuenta/cuotas-pendientes")

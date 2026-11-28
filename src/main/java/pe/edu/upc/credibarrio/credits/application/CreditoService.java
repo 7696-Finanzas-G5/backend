@@ -130,7 +130,7 @@ public class CreditoService {
         Cliente cliente = clientes.obtener(sol.idCliente());
         CondicionesFinancieras cond = condicionesVigentes(sol.idCliente());
         ProductoOfertado producto = productoDeLaTienda(sol.idProducto(), cliente);
-        return OriginacionCredito.simular(normalizar(sol), producto, cond, disponible(sol.idCliente()));
+        return simularCompra(normalizar(sol), producto, cond, disponible(sol.idCliente()));
     }
 
     public Compra registrarCompra(SolicitudCompra solicitud) {
@@ -139,7 +139,7 @@ public class CreditoService {
         if (!cliente.activo()) throw new DomainException("El cliente está dado de baja.");
         CondicionesFinancieras cond = condicionesVigentes(sol.idCliente());
         ProductoOfertado producto = productoDeLaTienda(sol.idProducto(), cliente);
-        SimulacionCompra sim = OriginacionCredito.simular(sol, producto, cond, disponible(sol.idCliente()));
+        SimulacionCompra sim = simularCompra(sol, producto, cond, disponible(sol.idCliente()));
         if (!sim.valida()) throw new DomainException(String.join(" ", sim.errores()));
 
         BigDecimal monto = FinancialMath.money(sim.monto());
@@ -162,6 +162,12 @@ public class CreditoService {
     public List<Compra> comprasFinDeMesPendientes(Long idCliente) {
         return compras.findByIdClienteAndModalidadAndEstadoOrderByFechaHoraCompra(idCliente, ModalidadCompra.FIN_MES,
                 EstadoCompra.REGISTRADA);
+    }
+
+    /** Compras a fin de mes pendientes de todos los clientes (proceso automático de corte; sin control de acceso). */
+    @Transactional(readOnly = true)
+    public List<Compra> comprasFinDeMesPendientesDeTodos() {
+        return compras.findByModalidadAndEstadoOrderByFechaHoraCompra(ModalidadCompra.FIN_MES, EstadoCompra.REGISTRADA);
     }
 
     @Transactional(readOnly = true)
@@ -203,6 +209,18 @@ public class CreditoService {
     }
 
     // ---------------------------------------------------------------- privados
+
+    private SimulacionCompra simularCompra(SolicitudCompra sol, ProductoOfertado producto,
+                                           CondicionesFinancieras cond, double disponible) {
+        SimulacionCompra sim = OriginacionCredito.simular(sol, producto, cond, disponible);
+        if (sol.modalidad() != ModalidadCompra.FIN_MES || !acl.cicloFinDeMesEmitido(sol.idCliente(), sim.fechaPago())) {
+            return sim;
+        }
+        List<String> errores = new ArrayList<>(sim.errores());
+        errores.add("El ciclo ya tiene un listado de pago emitido; no admite nuevas compras a fin de mes.");
+        return new SimulacionCompra(errores, sim.monto(), sim.disponible(), sim.fechaPago(), sim.fechaCorte(),
+                sim.esAnteriorAlCorte(), sim.finMes(), sim.cronograma());
+    }
 
     private ProductoOfertado productoDeLaTienda(Long idProducto, Cliente cliente) {
         return acl.producto(idProducto)
